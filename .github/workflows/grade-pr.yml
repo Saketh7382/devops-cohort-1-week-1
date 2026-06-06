@@ -1,0 +1,47 @@
+name: Grade Pull Request
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  grade:
+    name: Run Week 1 grading
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout grading scripts
+        uses: actions/checkout@v4
+        with:
+          repository: Cohort-by-Muvion/devops-cohort-grading
+          token: ${{ secrets.GRADING_REPO_TOKEN }}
+          path: grading
+
+      - name: Checkout student submission
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: submission
+          persist-credentials: false
+
+      - name: Run grading script
+        env:
+          SUBMISSION_DIR: ${{ github.workspace }}/submission
+          WEEK_NUMBER: "1"
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+          STUDENT_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+        run: |
+          chmod +x grading/scripts/week-1/grade.sh
+          grading/scripts/week-1/grade.sh
